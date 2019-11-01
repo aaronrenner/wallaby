@@ -2,6 +2,7 @@ defmodule Wallaby.SessionStore do
   @moduledoc false
   use GenServer
 
+  alias Wallaby.Session
   alias Wallaby.Experimental.Selenium.WebdriverClient
 
   def start_link, do: GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -10,23 +11,38 @@ defmodule Wallaby.SessionStore do
 
   def demonitor(session), do: GenServer.call(__MODULE__, {:demonitor, session})
 
+  def get_registered_sessions(owner_pid \\ self()) when is_pid(owner_pid) do
+    GenServer.call(__MODULE__, {:get_registered_sessions, owner_pid})
+  end
+
   def init(:ok) do
     Process.flag(:trap_exit, true)
     {:ok, %{refs: %{}}}
   end
 
+  def handle_call({:get_registered_sessions, owner_pid}, _from, %{refs: refs} = state) do
+    sessions =
+      Enum.flat_map(refs, fn
+        {_ref, {^owner_pid, %Session{} = session}} -> [session]
+        _ -> []
+      end)
+
+    {:reply, sessions, state}
+  end
+
   def handle_call({:monitor, session}, {pid, _ref}, %{refs: refs} = state) do
     ref = Process.monitor(pid)
-    refs = Map.put(refs, ref, session)
+    refs = Map.put(refs, ref, {pid, session})
     {:reply, :ok, %{state | refs: refs}}
   end
 
   def handle_call({:demonitor, session}, _from, %{refs: refs} = state) do
-    case Enum.find(refs, fn({_, value}) -> value.id == session.id end) do
+    case Enum.find(refs, fn {_, {_pid, value}} -> value.id == session.id end) do
       {ref, _} ->
         {_, refs} = Map.pop(refs, ref)
         true = Process.demonitor(ref)
         {:reply, :ok, %{state | refs: refs}}
+
       nil ->
         {:reply, :ok, state}
     end
@@ -39,7 +55,7 @@ defmodule Wallaby.SessionStore do
   end
 
   def terminate(_reason, %{refs: refs}) do
-    Enum.each(refs, fn({_ref, session}) -> close_session(session) end)
+    Enum.each(refs, fn {_ref, session} -> close_session(session) end)
   end
 
   defp close_session(session) do

@@ -1,4 +1,4 @@
-ExUnit.configure(exclude: [pending: true])
+ExUnit.configure(exclude: [:ex_unit, :pending])
 ExUnit.start()
 
 Application.ensure_all_started(:bypass)
