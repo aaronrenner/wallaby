@@ -6,15 +6,8 @@ defmodule Wallaby.FeatureTest do
       case contents do
         [do: block] ->
           quote do
-            try do
-              unquote(block)
-            rescue
-              error ->
-                unquote(__MODULE__).take_screenshots_for_open_sessions(self())
-                reraise(error, __STACKTRACE__)
-            after
-              :ok
-            end
+            unquote(block)
+            :ok
           end
 
         _ ->
@@ -25,6 +18,20 @@ defmodule Wallaby.FeatureTest do
       end
 
     context = Macro.escape(context)
+
+    contents =
+      quote do
+        try do
+          unquote(contents)
+        rescue
+          error ->
+            unquote(__MODULE__).take_screenshots_for_open_sessions(self())
+            reraise error, __STACKTRACE__
+        after
+          :ok
+        end
+      end
+
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: [context: context, contents: contents, message: message] do

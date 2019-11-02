@@ -29,7 +29,7 @@ defmodule Wallaby.FeatureTestTest do
       use ExUnit.Case
       import Wallaby.FeatureTest
 
-      feature "fails" do
+      test "fails" do
         {:ok, _} = Wallaby.start_session()
         {:ok, _} = Wallaby.start_session()
 
@@ -71,6 +71,32 @@ defmodule Wallaby.FeatureTestTest do
 
     assert output =~ "\n1 feature, 0 failures\n"
     assert screenshot_taken_count(output) == 0
+  end
+
+  test "feature takes a screenshot with a rescue block" do
+    defmodule RescueBlockFailureTest do
+      use ExUnit.Case
+      import Wallaby.FeatureTest
+
+      feature "successful" do
+        Wallaby.start_session()
+        raise "foo"
+      rescue
+        _error ->
+          raise "another error"
+      end
+    end
+
+    ExUnit.Server.modules_loaded()
+    configure_and_reload_on_exit(colors: [enabled: false])
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
+      end)
+
+    assert output =~ "\n1 feature, 1 failure\n"
+    assert screenshot_taken_count(output) == 1
   end
 
   defp configure_and_reload_on_exit(opts) do
