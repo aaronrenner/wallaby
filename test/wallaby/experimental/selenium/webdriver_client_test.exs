@@ -800,6 +800,19 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
       assert {:ok, []} = Client.log(session)
     end
+
+    test "returns on invalid response from server", %{bypass: bypass} do
+      session = build_session_for_bypass(bypass)
+
+      Bypass.expect(bypass, "POST", "/session/#{session.id}/log", fn conn ->
+        send_json_resp(conn, 500, ~s<{
+          "sessionId": "#{session.id}",
+          "status": 0
+      }>)
+      end)
+
+      assert :error = Client.log(session)
+    end
   end
 
   describe "page_source/1" do

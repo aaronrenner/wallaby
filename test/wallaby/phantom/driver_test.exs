@@ -707,6 +707,21 @@ defmodule Wallaby.Phantom.DriverTest do
 
       assert {:ok, []} = Driver.log(session)
     end
+
+    test "returns on invalid response from server", %{bypass: bypass} do
+      session = build_session_for_bypass(bypass)
+
+      Bypass.expect(bypass, fn conn ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(500, ~s<{
+          "sessionId": "#{session.id}",
+          "status": 0
+      }>)
+      end)
+
+      assert :error = Driver.log(session)
+    end
   end
 
   describe "page_source/1" do
