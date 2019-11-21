@@ -111,6 +111,7 @@ defmodule Wallaby.Experimental.Chrome do
   alias Wallaby.{DependencyError, Metadata}
   alias Wallaby.Experimental.Chrome.{Chromedriver}
   alias Wallaby.Experimental.Selenium.WebdriverClient
+  alias WebDriverClient.Config, as: WDCConfig
   import Wallaby.Driver.LogChecker
 
   @typedoc """
@@ -209,13 +210,17 @@ defmodule Wallaby.Experimental.Chrome do
   @spec start_session([start_session_opts]) :: Wallaby.Driver.on_start_session() | no_return
   def start_session(opts \\ []) do
     {:ok, base_url} = Chromedriver.base_url()
-    create_session_fn = Keyword.get(opts, :create_session_fn, &WebdriverClient.create_session/2)
+
+    config =
+      WDCConfig.build(
+        protocol: :jwp,
+        base_url: base_url
+      )
 
     capabilities = Keyword.get(opts, :capabilities, capabilities_from_config(opts))
 
-    with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["sessionId"]
-
+    with {:ok, %WebDriverClient.Session{id: id}} <-
+           WebDriverClient.start_session(config, %{"desiredCapabilities" => capabilities}) do
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
         url: base_url <> "session/#{id}",

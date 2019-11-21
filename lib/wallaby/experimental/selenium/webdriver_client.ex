@@ -4,6 +4,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # documented on https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol
   alias Wallaby.{Driver, Element, Query, Session}
   alias Wallaby.Helpers.KeyCodes
+  alias Wallaby.MigrationHelpers
   import Wallaby.HTTPClient
 
   @type http_method :: :post | :get | :delete
@@ -462,11 +463,19 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @doc """
   Retrieves logs from the browser
   """
-  @spec log(Session.t() | Element.t()) :: {:ok, [map]}
+  @spec log(Session.t() | Element.t()) :: {:ok, [map]} | :error
   def log(session) do
-    with {:ok, resp} <- request(:post, "#{session.session_url}/log", %{type: "browser"}),
-         {:ok, value} <- Map.fetch(resp, "value"),
-         do: {:ok, value}
+    session
+    |> MigrationHelpers.build_web_driver_client_session()
+    |> WebDriverClient.fetch_logs("browser")
+    |> case do
+      {:ok, log_entries} ->
+        legacy_log_entries = Enum.map(log_entries, &MigrationHelpers.to_legacy_log_entry/1)
+        {:ok, legacy_log_entries}
+
+      {:error, _} ->
+        :error
+    end
   end
 
   @doc """

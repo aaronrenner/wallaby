@@ -10,6 +10,7 @@ defmodule Wallaby.Phantom.Driver do
   alias Wallaby.Phantom
   alias Wallaby.Phantom.Server
   alias Wallaby.Metadata
+  alias Wallaby.MigrationHelpers
   alias Wallaby.Query
   alias Wallaby.Session
   alias Wallaby.StaleReferenceError
@@ -394,10 +395,23 @@ defmodule Wallaby.Phantom.Driver do
   @doc """
   Retrieves logs from the browser
   """
+  @spec log(Session.t() | Element.t()) :: {:ok, [map]} | :error
   def log(session) do
-    with {:ok, resp} <- request(:post, "#{session.session_url}/log", %{type: "browser"}),
-         {:ok, value} <- Map.fetch(resp, "value"),
-         do: {:ok, value}
+    session
+    |> MigrationHelpers.build_web_driver_client_session()
+    |> WebDriverClient.fetch_logs("browser")
+    |> case do
+      {:ok, log_entries} ->
+        legacy_log_entries = Enum.map(log_entries, &MigrationHelpers.to_legacy_log_entry/1)
+        {:ok, legacy_log_entries}
+
+      {:error, _} ->
+        :error
+    end
+
+    # with {:ok, resp} <- request(:post, "#{session.session_url}/log", %{type: "browser"}),
+    #      {:ok, value} <- Map.fetch(resp, "value"),
+    #   do: {:ok, value}
   end
 
   @doc """
