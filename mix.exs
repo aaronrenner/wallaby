@@ -28,10 +28,8 @@ defmodule Wallaby.Mixfile do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.post": :test,
         "coveralls.html": :test,
-        "coveralls.travis": :test,
-        "coveralls.safe_travis": :test,
+        "coveralls.github": :test,
         "test.all": :test,
         "test.drivers": :test
       ],
@@ -60,7 +58,7 @@ defmodule Wallaby.Mixfile do
       {:benchee_html, "~> 0.3", only: :dev},
       {:credo, "~> 0.9", only: [:dev, :test], runtime: false},
       {:bypass, "~> 1.0.0", only: :test},
-      {:excoveralls, "~> 0.7", only: :test},
+      {:excoveralls, "~> 0.12", only: :test},
       {:ex_doc, "~> 0.20", only: :docs},
       {:inch_ex, "~> 2.0", only: :docs}
     ]

@@ -102,7 +102,7 @@ jobs:
     - name: Run Tests
       env:
         WALLABY_DRIVER: chrome
-      run: mix coveralls.safe_travis
+      run: mix coveralls.github
 
   selenium:
     runs-on: ubuntu-latest
@@ -137,7 +137,7 @@ jobs:
       run: |
         java -jar "$HOME/selenium.jar" > /dev/null 2>&1 &
 
-        mix coveralls.safe_travis
+        mix coveralls.github
 
   phantomjs:
     runs-on: ubuntu-latest
@@ -168,4 +168,4 @@ jobs:
     - name: Run Tests
       env:
         WALLABY_DRIVER: phantom
-      run: mix coveralls.safe_travis
+      run: mix coveralls.github
