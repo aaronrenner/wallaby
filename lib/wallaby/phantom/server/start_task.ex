@@ -97,6 +97,8 @@ defmodule Wallaby.Phantom.Server.StartTask do
 
   @spec analyze_output(String.t()) :: :phantom_up | {:os_pid, os_pid} | :unknown
   defp analyze_output(output) do
+    IO.inspect(output)
+
     cond do
       output =~ "running on port" ->
         :phantom_up
