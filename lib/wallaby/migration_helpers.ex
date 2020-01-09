@@ -18,7 +18,7 @@ defmodule Wallaby.MigrationHelpers do
 
     base_url = uri |> URI.merge(base_path) |> URI.to_string()
 
-    config = WDCConfig.build(base_url: base_url, protocol: :jwp, debug: false)
+    config = WDCConfig.build(base_url: base_url, protocol: :jwp, debug: debug?())
     WebDriverClient.Session.build(session_id, config)
   end
 
@@ -29,5 +29,9 @@ defmodule Wallaby.MigrationHelpers do
         source: source
       }) do
     %{"level" => level, "message" => message, "source" => source}
+  end
+
+  defp debug? do
+    Application.get_env(:wallaby, :debug_web_driver_requests, false)
   end
 end
