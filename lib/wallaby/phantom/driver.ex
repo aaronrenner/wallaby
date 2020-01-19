@@ -15,6 +15,8 @@ defmodule Wallaby.Phantom.Driver do
   alias Wallaby.Session
   alias Wallaby.StaleReferenceError
 
+  alias WebDriverClient.Config, as: WDCConfig
+
   @type method :: :post | :get | :delete
   @type url :: String.t()
   @type query :: String.t()
@@ -29,6 +31,8 @@ defmodule Wallaby.Phantom.Driver do
   def create(server, opts) do
     base_url = Server.get_base_url(server)
 
+    config = WDCConfig.build(protocol: :jwp, base_url: base_url)
+
     user_agent =
       Phantom.user_agent()
       |> Metadata.append(opts[:metadata])
@@ -39,30 +43,21 @@ defmodule Wallaby.Phantom.Driver do
         custom_headers: opts[:custom_headers]
       )
 
-    {:ok, response} = create_session(base_url, capabilities)
-    id = response["sessionId"]
+    with {:ok, %WebDriverClient.Session{id: id}} <-
+           WebDriverClient.start_session(config, %{"desiredCapabilities" => capabilities}) do
+      session = %Wallaby.Session{
+        session_url: base_url <> "session/#{id}",
+        url: base_url <> "session/#{id}",
+        id: id,
+        server: server,
+        driver: Phantom
+      }
 
-    session = %Wallaby.Session{
-      session_url: base_url <> "session/#{id}",
-      url: base_url <> "session/#{id}",
-      id: id,
-      server: server,
-      driver: Phantom
-    }
+      if window_size = Keyword.get(opts, :window_size),
+        do: {:ok, _} = set_window_size(session, window_size[:width], window_size[:height])
 
-    if window_size = Keyword.get(opts, :window_size),
-      do: {:ok, _} = set_window_size(session, window_size[:width], window_size[:height])
-
-    {:ok, session}
-  end
-
-  # Create a session with the base url.
-  @doc false
-  @spec create_session(String.t(), map) :: {:ok, map}
-  def create_session(base_url, capabilities) do
-    params = %{desiredCapabilities: capabilities}
-
-    request(:post, "#{base_url}session", params)
+      {:ok, session}
+    end
   end
 
   @doc """
