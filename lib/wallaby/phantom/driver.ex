@@ -24,9 +24,9 @@ defmodule Wallaby.Phantom.Driver do
           {:error, :invalid_selector}
           | {:error, :stale_reference}
 
-  @spec create(pid, Keyword.t()) :: {:ok, Session.t()}
+  @spec create(pid, Keyword.t()) :: {:ok, Session.t()} | no_return
   def create(server, opts) do
-    base_url = Server.get_base_url(server)
+    base_url = Keyword.get_lazy(opts, :base_url, fn -> Server.get_base_url(server) end)
 
     user_agent =
       Phantom.user_agent()
@@ -56,9 +56,8 @@ defmodule Wallaby.Phantom.Driver do
   end
 
   # Create a session with the base url.
-  @doc false
   @spec create_session(String.t(), map) :: {:ok, map}
-  def create_session(base_url, capabilities) do
+  defp create_session(base_url, capabilities) do
     params = %{desiredCapabilities: capabilities}
 
     request(:post, "#{base_url}session", params)

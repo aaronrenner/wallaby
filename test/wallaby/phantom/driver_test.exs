@@ -6,34 +6,47 @@ defmodule Wallaby.Phantom.DriverTest do
 
   @window_handle_id "bdc333b0-1989-11e7-a2c3-d1d2d92b0e58"
 
-  describe "create_session/2" do
-    test "sends the correct request to the webdriver backend", %{bypass: bypass} do
-      base_url = bypass_url(bypass) <> "/"
+  describe "create/2" do
+    test "sends the the correct request", %{bypass: bypass} do
+      base_url = bypass_url(bypass, "/")
       new_session_id = "abc123"
+      sample_pid = self()
 
-      capabilities = %{
-        "platform" => "OS X",
-        "browser" => "chrome"
-      }
-
-      Bypass.expect(bypass, fn conn ->
+      Bypass.expect_once(bypass, "POST", "/session", fn conn ->
         conn = parse_body(conn)
-        assert "POST" == conn.method
-        assert "/session" == conn.request_path
-        assert %{"desiredCapabilities" => capabilities} == conn.body_params
+        assert %{"desiredCapabilities" => %{"browserName" => "phantomjs"}} = conn.body_params
 
-        send_json_resp(conn, 200, ~s<{
-          "sessionId": "#{new_session_id}",
-          "status": 0,
-          "value": {
-            "acceptSslCerts": false,
-            "browserName": "phantomjs"
+        send_json_resp(conn, 200, %{
+          "sessionId" => new_session_id,
+          "status" => 0,
+          "value" => %{
+            "acceptSslCerts" => false,
+            "browserName" => "phantomjs"
           }
-        }>)
+        })
       end)
 
-      assert {:ok, response} = Driver.create_session(base_url, capabilities)
-      assert %{"sessionId" => ^new_session_id} = response
+      expected_session_url = base_url |> URI.merge("/session/#{new_session_id}") |> to_string()
+
+      assert {:ok,
+              %Session{
+                driver: Wallaby.Phantom,
+                id: ^new_session_id,
+                server: ^sample_pid,
+                session_url: ^expected_session_url,
+                url: ^expected_session_url
+              }} = Driver.create(sample_pid, base_url: base_url)
+    end
+
+    test "raises when the server is down", %{bypass: bypass} do
+      base_url = bypass_url(bypass, "/")
+      sample_pid = self()
+
+      Bypass.down(bypass)
+
+      assert_raise RuntimeError, ~r/internal issue/i, fn ->
+        Driver.create(sample_pid, base_url: base_url)
+      end
     end
   end
 
