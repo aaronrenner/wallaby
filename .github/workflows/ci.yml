@@ -33,6 +33,9 @@ jobs:
         path: _build
         key: ${{ runner.os }}-v1-dialyzer-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
+    - name: Echo schedulers_online
+      run: elixir -e ":schedulers_online |> :erlang.system_info() |> IO.inspect()"
+
     - name: Install Dependencies
       if: steps.deps-cache.outputs.cache-hit != 'true'
       run: mix deps.get
@@ -76,6 +79,9 @@ jobs:
       with:
         path: deps
         key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+
+    - name: Echo schedulers_online
+      run: elixir -e ":schedulers_online |> :erlang.system_info() |> IO.inspect()"
 
     - name: Install Dependencies
       if: steps.cache.outputs.cache-hit != 'true'
@@ -197,6 +203,9 @@ jobs:
       with:
         path: deps
         key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+
+    - name: Echo schedulers_online
+      run: elixir -e ":schedulers_online |> :erlang.system_info() |> IO.inspect()"
 
     - name: Install Dependencies
       if: steps.cache.outputs.cache-hit != 'true'
